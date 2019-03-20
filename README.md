@@ -64,6 +64,7 @@ Anaconda includes a couple of tools that will make writing python apps convenien
 
 ##### Learning Python
 
+* [How to code in Python 3](https://www.digitalocean.com/community/tutorials/digitalocean-ebook-how-to-code-in-python) A free e-book (epub & PDF formats) from Digital Ocean (also available in [WorldCat](https://www.worldcat.org/title/how-to-code-in-python-3/oclc/1020289950)
 * [LearnPython.org](https://www.learnpython.org/) - a basic tutorial. Note that this is an older web site and none of their interactive code snippets seem to run any more. But you can run the code locally.
 * [Codecademy](https://www.codecademy.com/learn/learn-python) - free python course (just skip over the paid modules)
 * [Codeschool](https://www.codeschool.com/courses/try-python) - free python course
