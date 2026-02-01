@@ -12,68 +12,33 @@ A pose is an object representing the coordinates of something in field-relative 
 
 ## Updating odometry
 
-Every time through the event loop, we need to update the odometry maintained by the bot (its notion of where it is on the field).
-
-From [the Limelight megatag example](https://github.com/LimelightVision/limelight-examples/blob/main/java-wpilib/swerve-megatag-odometry/src/main/java/frc/robot/Drivetrain.java#L87) we'd have an updateOdometry() function that includes both the update-from-swerve-modules and MegaTag2 localization. We'd run this in both autonomous and teleop periodic functions. We'd need to replace the function that CTR provides in their generated code with this one.
+The CTRE-generated code includes the functionality to automatically update the bot's odometry. We can & should use their `addVisionMeasurment()` function to refine that odometry using pose information from the Limelight. We would do that in the `robotPeriodic()` function so that it runs in both auto and teleop modes.
 
 ```java
-// In the Drivetrain.java file (see link above to full code)
 
-// This is in the Drivetrain class definition
-/* Here we use SwerveDrivePoseEstimator so that we can fuse odometry readings. The numbers used
-below are robot specific, and should be tuned. */
-private final SwerveDrivePoseEstimator m_poseEstimator =
-    new SwerveDrivePoseEstimator(
-        m_kinematics,
-        m_gyro.getRotation2d(),
-        new SwerveModulePosition[] {
-        m_frontLeft.getPosition(),
-        m_frontRight.getPosition(),
-        m_backLeft.getPosition(),
-        m_backRight.getPosition()
-        },
-        new Pose2d(),
-        VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5)),
-        VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
-
-
-//
-// This is part of the Drivetrain() constructor
-//
-
-/** Updates the field relative position of the robot. */
-public void updateOdometry() {
-  // this uses the swerve drive's info (encoder counts) and the gyro to estimate
-  // the robot's location on the field.
-  m_poseEstimator.update(
-      m_gyro.getRotation2d(),
-      new SwerveModulePosition[] {
-        m_frontLeft.getPosition(),
-        m_frontRight.getPosition(),
-        m_backLeft.getPosition(),
-        m_backRight.getPosition()
-      });
-
-  // This code, from Limelight, updates the robot's estimated location with a calculated
-  // value based on the visibility of AprilTags on the field.
+@Override
+public void robotPeriodic() {
+  // uses the getPose() function we added to Autos.java in 2026Rebuilt
+  // needs a reference to the gyro, m_gyro
   boolean doRejectUpdate = false;
-    LimelightHelpers.SetRobotOrientation("limelight", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
-    LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
-    if(Math.abs(m_gyro.getRate()) > 720) {
-      // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-      doRejectUpdate = true;
+  LimelightHelpers.SetRobotOrientation("limelight", getPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+  LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+  if(Math.abs(m_gyro.getRate()) > 720) {
+    // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+    doRejectUpdate = true;
+  }
+  if(mt2.tagCount == 0) {
+    doRejectUpdate = true;
+  }
+  if(!doRejectUpdate) {
+    m_poseEstimator.addVisionMeasurement(
+        mt2.pose,
+        mt2.timestampSeconds);
     }
-    if(mt2.tagCount == 0) {
-      doRejectUpdate = true;
-    }
-    if(!doRejectUpdate) {
-      m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
-      m_poseEstimator.addVisionMeasurement(
-          mt2.pose,
-          mt2.timestampSeconds);
-      }
 }
 ```
+
+See [the Limelight megatag example](https://github.com/LimelightVision/limelight-examples/blob/main/java-wpilib/swerve-megatag-odometry/src/main/java/frc/robot/Drivetrain.java#L87) and the Limelight docs for more on MegaTag2.
 
 ## Getting the robot's location
 
@@ -96,11 +61,12 @@ public Pose2d getRobotPose_FieldSpace2D() {
 }
 currentBotPose = getRobotPose_FieldSpace2D();
 
-```
+// Using CTRE's generated swerve project, we can get the bot's pose using:
+var state = drivetrain.getState();
+// pull out the pose estimate and chassis speeds
+Pose2d currentBotPose = state.Pose;
+ChassisSpeeds speeds = state.Speeds;
 
-```java
-// Pose estimator technique, m_poseEstimator is defined in Drivetrain.java
-Pose2D whereIsTheBot = m_poseEstimator.getEstimatedPosition();
 ```
 
 ## Calculating distance to an April tag
@@ -113,7 +79,7 @@ aprilTags.setOrigin(OriginPosition.kBlueAllianceWallRightSide);
 
 Optional<Pose3d> tagPose = aprilTags.getTagPose(id); // where id is the AprilTag ID number
 if (!tagPose.isEmpty()) {
-    double distance = currentRobotPose.getTranslation()
+    double distance = currentBotPose.getTranslation()
         .getDistance(tagPose.get().getTranslation().toTranslation2d()); // meters I believe
 }
 
