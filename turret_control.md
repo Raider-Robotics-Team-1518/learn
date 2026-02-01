@@ -1,28 +1,33 @@
-A TurretSubsystem class:
+A TurretSubsystem class, taken from https://youtu.be/2G25fvJnC00
 
 ```java
 package frc.robot.subsystems;
 
-// There will need to be more imports than this based on the classes
-// used in the code below
 import com.ctre.phoenix6.configs.FeedbackConfigs;
-import com.ctre.phoenix6.configs.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.hardware.CANCoder;
+import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.Units.Degree;
-import edu.wpi.first.units.Units.Inch;
-import edu.wpi.first.units.Units.Radians;
+import edu.wpi.first.units.Units;
+import edu.wpi.first.units.Units.*;
 
 import frc.robot.Constants;
 
 public class TurretSubsystem extends SubsystemBase {
 
     private final TalonFX turretMotor;
-    private final CANCoder turretEncoder;
+    private final CANcoder turretEncoder;
 
     // This enum should be moved to its own class and imported
     // and used here so that it's easily available in the
@@ -39,30 +44,27 @@ public class TurretSubsystem extends SubsystemBase {
     public TurretSubsystem() {
         currentState = turretStates.DEFAULT;
         turretMotor = new TalonFX(Constants.turretMotorID);
-        turretEncoder = new CANCoder(Constants.turretEncoderID);
+        turretEncoder = new CANcoder(Constants.turretEncoderID);
         FeedbackConfigs motor_feedback_config = new FeedbackConfigs();
         motor_feedback_config.SensorToMechanismRatio = 1 / 1.2; // should define that in constants
-        motor_feedback_config.RotorToSensorRation = 60; // should define that in constants
-        motor_feedback_config.FeedbackSensorSource = FeedbackSensorSourceValue.RemoteCANCoder;
+        motor_feedback_config.RotorToSensorRatio = 60; // should define that in constants
+        motor_feedback_config.FeedbackSensorSource = FeedbackSensorSourceValue.RemoteCANcoder;
         motor_feedback_config.FeedbackRemoteSensorID = turretEncoder.getDeviceID();
         SoftwareLimitSwitchConfigs motor_software_limit_switch_config = new SoftwareLimitSwitchConfigs();
         // Soft limits protects cables from being pulled
         motor_software_limit_switch_config.ForwardSoftLimitEnable = true;
         motor_software_limit_switch_config.ReverseSoftLimitEnable = true;
-        // limits to approx +/- 175 degrees
+        // limits to approx +/- 175 degrees, these should be constants
         motor_software_limit_switch_config.ForwardSoftLimitThreshold = 0.48;
         motor_software_limit_switch_config.ReverseSoftLimitThreshold = -0.48;
 
         TalonFXConfiguration motor_config = new TalonFXConfiguration();
         motor_config.SoftwareLimitSwitch = motor_software_limit_switch_config;
-        motor_config.FeedbackConfigs = motor_feedback_config;
-
-        turretMotor.Slot0.kP = 2.4;
-        turretMotor.Slot0.kI = 0;
-        turretMotor.Slot0.kD = 0.01;
-
-        // need to figure out how to configure the turretMotor.Slot0 configs
-        // his code used a custom class for that
+        motor_config.withFeedback(motor_feedback_config);
+        // configure our PID values, these should be Tunables or at least constants
+        motor_config.Slot0.kP = 2.4;
+        motor_config.Slot0.kI = 0;
+        motor_config.Slot0.kD = 0.1;
 
         turretMotor.getConfigurator().apply(motor_config);
 
@@ -73,8 +75,8 @@ public class TurretSubsystem extends SubsystemBase {
         super.periodic();
 
         // need to import Degrees...I think it's in edu.wpi.first.units.measure
-        tx = Degrees.of(LimelightHelpers.getTX("limelight"));
-        ty = Degrees.of(LimelightHelpers.getTY("limelight"));
+        tx = Units.Degrees.of(LimelightHelpers.getTX("limelight"));
+        ty = Units.Degrees.of(LimelightHelpers.getTY("limelight"));
         tv = LimelightHelpers.getTV("limelight");
 
         // This method will be called once per scheduler run
@@ -109,15 +111,15 @@ public class TurretSubsystem extends SubsystemBase {
     private Distance getDistance() {
         // TARGET_HEIGHT needs to be defined as a Distance (in Inch)
         // Distance TARGET_HEIGHT = Distance.ofBaseUnits(36, Inch)
-        Distance oppposite = Constants.TARGET_HEIGHT.minus(Constants.LIMELIGHT_HEIGHT);
+        Distance opposite = Constants.TARGET_HEIGHT.minus(Constants.LIMELIGHT_HEIGHT);
         // ty is from the limelight helper getTy()
         // import edu.wpi.first.units.measure.Angle;
         // import edu.wpi.first.units.Units.Degree;
         // Angle LIMELIGHT_MOUNTING_ANGLE = Degree.of(15);
         Angle theta = ty.plus(Constants.LIMELIGHT_MOUNTING_ANGLE);
         // import edu.wpi.first.units.Units.Radians;
-        double distance = opposite.in(Meter) / Math.tan(theta.in(Radians));
-        return Distance.ofBaseUnits(distance, Meter);
+        double distance = opposite.in(Units.Meter) / Math.tan(theta.in(Units.Radians));
+        return Distance.ofBaseUnits(distance, Units.Meter);
     }
 
     public Angle getTargetAngle() {
@@ -125,16 +127,16 @@ public class TurretSubsystem extends SubsystemBase {
         // is currently pointing. This is how far we'll have to turn
         // We'd get this from the Limelight's tx value
         Distance distance = getDistance();
-        Distance oppposite = distance.times(Math.tan(tx.in(Radians))).plus(Constants.CAMERA_OFFSET_X);
+        Distance oppposite = distance.times(Math.tan(tx.in(Units.Radians))).plus(Constants.CAMERA_OFFSET_X);
         Distance adjacent = distance.plus(Constants.CAMERA_OFFSET_Y);
-        return Radians.of(Math.atan(oppposite.in(Meter) / adjacent.in(Meter)));
+        return Units.Radians.of(Math.atan(oppposite.in(Units.Meter) / adjacent.in(Units.Meter)));
     }
 
     public Angle getTurretFacingAngle() {
         // get the current angle the turret is turned to, would be
         // based on the encoder's absolute position with zero being
         // straight ahead
-        return turretMotor.getAbsolutePosition().getValue();
+        return turretEncoder.getAbsolutePosition().getValue();
     }
 
     public boolean isTargetVisible() {
@@ -146,12 +148,12 @@ public class TurretSubsystem extends SubsystemBase {
         Angle currentAngle = getTurretFacingAngle();
         Angle offsetAngle = getTargetAngle();
         Angle targetAngle = currentAngle.plus(offsetAngle);
-        Angle clampedAngle = Rotations.of(Math.max(-0.48, Math.min(0.48, targetAngle.inRotations())));
+        Angle clampedAngle = Units.Rotations.of(Math.max(-0.48, Math.min(0.48, targetAngle.inRotations())));
         turretMotor.setControl(new PositionVoltage(0).withPosition(clampedAngle));
     }
 
     private void findTarget() {
-        double currentRotation = getTurretFacingAngle().in(Rotations);
+        double currentRotation = getTurretFacingAngle().in(Units.Rotations);
         double searchSpeed = 0.26; // radians/sec
         if (currentRotation >= 0.47) {
             searchDirectionRight = false;
@@ -159,7 +161,7 @@ public class TurretSubsystem extends SubsystemBase {
             searchDirectionRight = true;
         }
         double finalVelocity = searchDirectionRight ? searchSpeed : -searchSpeed;
-        turretMotor.setControl(new VelocityVoltage(0).withVelocity(RadiansPerSecond.of(finalVelocity))); // about 45
+        turretMotor.setControl(new VelocityVoltage(0).withVelocity(Units.RadiansPerSecond.of(finalVelocity))); // about 45
                                                                                                          // deg/sec
     }
 
