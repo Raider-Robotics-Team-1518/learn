@@ -28,10 +28,6 @@ Do this with the bot on blocks first, then repeat on the ground.
 1. Repeat till it reliably hits the target angle.
 1. If the wheels oscillate around the set point, increase D. Repeat your tests.
 
-## Tunables
-
-There's a way to read values from the SmartDashboard (not sure about Elastic but it probably works). This involves using the Tunable class. You'd have to modify the TunerConstants.java file to use Tunables that you instantiate. Doing this would let you tune PID values from the dashboard rather than having to build and push code each time. You'll have to read the WPILib docs for how to use Tunables since we haven't used them in the past.
-
 ## References
 
 These are good to read over!
