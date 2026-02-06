@@ -2,11 +2,20 @@
 
 Resources for team members wanting to learn to program our bot, vision subsystem, LEDs, and more.
 
+## Table of Contents
+
+- [Autonomous routines using Choreo](autos.md)
+- [PID control](pid_control.md)
+- [Swerve drive PID tuning](swerve_pid_tuning.md)
+- [Field localization](field_localization.md) (finding where you're at on the field)
+- A [turret control](turret_control.md) class taken from a YouTube vid by another FRC team
+- We made a few modifications to the CTRE-generated swerve drive base. [This document](ctre_swerve_mods.md) describes those changes so we can re-use those mods in future years.
+
 ## Tools
 
 The tools we use for programming are:
 
-- Visual Studio Code &mdash; Microsoft's free, open source code editor is now the preferred programming tool for FIRST teams. We will be using it in the 2018-2019 season
+- Visual Studio Code &mdash; Microsoft's free, open source code editor is now the preferred programming tool for FIRST teams.
 - GitHub &mdash; We store all our source code in GitHub. This makes it easily available to every member. Plus, by publishing it with an open source license, by FIRST rules we can re-use code as well as use code published by other teams.
 
 ### GitHub
