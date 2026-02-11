@@ -74,6 +74,7 @@ ChassisSpeeds speeds = state.Speeds;
 ```java
 // From GRR's Crescendo project
 
+private final AprilTagFieldLayout aprilTags;
 aprilTags = AprilTagFields.k2026RebuiltWelded.loadAprilTagLayoutField();
 aprilTags.setOrigin(OriginPosition.kBlueAllianceWallRightSide);
 
